@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoxCPM Studio - AI 配音工坊</title>
+<script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+<style>
+:root {
+  --bg: #0f0f0f; --card: #1a1a1a; --card2: #222; --border: #2a2a2a;
+  --text: #eee; --text2: #999; --text3: #666;
+  --accent: #6366f1; --accent2: #818cf8; --green: #22c55e; --red: #ef4444;
+  --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, 'PingFang SC', 'Segoe UI', sans-serif; min-height: 100vh; display: flex; justify-content: center; }
+.app { width: 100%; max-width: 520px; padding: 20px 16px 100px; }
+.header { text-align: center; padding: 20px 0 16px; }
+.header h1 { font-size: 26px; font-weight: 800; letter-spacing: -1px; background: linear-gradient(135deg, var(--accent2), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header p { font-size: 13px; color: var(--text3); margin-top: 4px; }
+
+.mode-tabs { display: flex; background: var(--card2); border-radius: 10px; padding: 3px; margin-bottom: 16px; }
+.mode-tab { flex: 1; border: none; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text2); transition: all .2s; font-family: inherit; }
+.mode-tab.on { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+
+.card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+.card-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card2); color: var(--text); font-size: 15px; font-family: inherit; resize: none; line-height: 1.6; outline: none; transition: border .2s; }
+textarea:focus { border-color: var(--accent); }
+.char-count { text-align: right; font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.preset-item { padding: 10px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--card2); cursor: pointer; text-align: center; transition: all .15s; font-family: inherit; }
+.preset-item:hover { border-color: var(--accent2); }
+.preset-item.sel { border-color: var(--accent); background: rgba(99,102,241,.1); }
+.preset-name { font-size: 13px; font-weight: 600; }
+.preset-lang { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+.upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px; text-align: center; cursor: pointer; transition: border .2s; }
+.upload-zone:hover { border-color: var(--accent2); }
+.upload-zone.has-file { border-color: var(--green); border-style: solid; }
+.upload-icon { font-size: 32px; margin-bottom: 6px; }
+.upload-text { font-size: 13px; color: var(--text2); }
+.upload-name { font-size: 12px; color: var(--accent2); margin-top: 4px; }
+
+.adv-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: var(--text2); padding: 8px 0; }
+.adv-toggle:hover { color: var(--text); }
+.adv-panel { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
+.slider-row { display: flex; align-items: center; gap: 10px; }
+.slider-row label { font-size: 12px; color: var(--text2); min-width: 70px; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-row .val { font-size: 12px; color: var(--text3); min-width: 32px; text-align: right; }
+.switch-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text2); }
+.switch-row input[type=checkbox] { accent-color: var(--accent); width: 18px; height: 18px; }
+
+.btn-gen { width: 100%; padding: 14px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), #7c3aed); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity .2s, transform .1s; font-family: inherit; }
+.btn-gen:active { transform: scale(.98); }
+.btn-gen:disabled { opacity: .5; cursor: not-allowed; }
+.btn-gen .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.audio-card { display: flex; align-items: center; gap: 12px; }
+.audio-card audio { flex: 1; height: 40px; }
+.btn-dl { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card2); color: var(--text); font-size: 12px; cursor: pointer; font-family: inherit; text-decoration: none; }
+
+.history-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.history-item:last-child { border-bottom: none; }
+.hist-info { flex: 1; min-width: 0; }
+.hist-text { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-meta { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.hist-btn { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card2); color: var(--text2); font-size: 11px; cursor: pointer; font-family: inherit; }
+.hist-del { color: var(--red); border-color: transparent; background: transparent; }
+
+.empty { text-align: center; padding: 30px; color: var(--text3); font-size: 13px; }
+
+.toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: var(--card); color: var(--text); padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,.4); animation: toastIn .3s ease; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <div class="header">
+    <h1>VoxCPM Studio</h1>
+    <p>AI 多语言配音工坊 — 文字转语音 · 声音克隆</p>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="mode-tabs">
+    <button :class="['mode-tab',{on:mode==='tts'}]" @click="mode='tts'">🎨 文字转语音</button>
+    <button :class="['mode-tab',{on:mode==='clone'}]" @click="mode='clone'">🎙️ 声音克隆</button>
+  </div>
+
+  <!-- Text Input -->
+  <div class="card">
+    <div class="card-label">输入文本</div>
+    <textarea v-model="text" rows="4" placeholder="输入要合成的文本，支持中英日韩等多语言..." maxlength="2000"></textarea>
+    <div class="char-count">{{text.length}} / 2000</div>
+  </div>
+
+  <!-- Preset Voices (TTS mode) -->
+  <div class="card" v-if="mode==='tts'">
+    <div class="card-label">选择音色</div>
+    <div class="preset-grid">
+      <button v-for="p in presets" :key="p.id" :class="['preset-item',{sel:selectedPreset===p.id}]" @click="selectedPreset=p.id">
+        <div class="preset-name">{{p.name}}</div>
+        <div class="preset-lang">{{p.lang}}</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Clone Upload (Clone mode) -->
+  <div class="card" v-if="mode==='clone'">
+    <div class="card-label">上传参考音频</div>
+    <div :class="['upload-zone',{ 'has-file': cloneFile }]" @click="$refs.cloneInput.click()" @dragover.prevent @drop.prevent="onDrop">
+      <div class="upload-icon">{{ cloneFile ? '✅' : '🎤' }}</div>
+      <div class="upload-text">{{ cloneFile ? cloneFile.name : '点击或拖拽上传音频 (WAV/MP3, &lt;10MB)' }}</div>
+      <div class="upload-name" v-if="cloneFile">{{ (cloneFile.size/1024).toFixed(0) }} KB</div>
+      <input type="file" ref="cloneInput" accept="audio/*" style="display:none" @change="onFileChange">
+    </div>
+    <div class="switch-row" style="margin-top:10px;">
+      <span>音频降噪</span>
+      <input type="checkbox" v-model="denoise">
+    </div>
+  </div>
+
+  <!-- Advanced Options -->
+  <div class="card">
+    <div class="adv-toggle" @click="showAdv=!showAdv">
+      <span>{{ showAdv ? '▾' : '▸' }}</span> 高级设置
+    </div>
+    <div class="adv-panel" v-if="showAdv">
+      <div class="slider-row">
+        <label>CFG 强度</label>
+        <input type="range" min="1.0" max="3.0" step="0.1" v-model.number="cfgValue">
+        <span class="val">{{cfgValue.toFixed(1)}}</span>
+      </div>
+      <div class="slider-row">
+        <label>推理步数</label>
+        <input type="range" min="4" max="30" step="1" v-model.number="timesteps">
+        <span class="val">{{timesteps}}</span>
+      </div>
+      <div class="switch-row">
+        <span>文本规范化</span>
+        <input type="checkbox" v-model="normalize">
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate Button -->
+  <button class="btn-gen" @click="doGenerate" :disabled="generating">
+    <span v-if="generating"><span class="spinner"></span>生成中...</span>
+    <span v-else>🔊 {{ mode==='tts' ? '生成语音' : '开始克隆' }}</span>
+  </button>
+
+  <!-- Audio Result -->
+  <div class="card" v-if="audioUrl" style="margin-top:12px;">
+    <div class="card-label">生成结果</div>
+    <div class="audio-card">
+      <audio controls :src="audioUrl" ref="player"></audio>
+      <a :href="audioUrl" download class="btn-dl">⬇ 下载</a>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card" style="margin-top:12px;" v-if="history.length || historyLoaded">
+    <div class="card-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>合成历史</span>
+      <button @click="loadHistory" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:11px;">刷新</button>
+    </div>
+    <div v-if="history.length">
+      <div class="history-item" v-for="h in history" :key="h.id">
+        <div class="hist-info">
+          <div class="hist-text">{{h.text}}</div>
+          <div class="hist-meta">{{h.type==='generate'?'文字合成':'声音克隆'}} · {{h.duration}}s · {{h.created_at?.slice(0,16)}}</div>
+        </div>
+        <button class="hist-btn" @click="playHistory(h)">▶</button>
+        <button class="hist-btn hist-del" @click="delHistory(h.id)">✕</button>
+      </div>
+    </div>
+    <div v-else class="empty">暂无合成记录</div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+
+createApp({
+  setup() {
+    const mode = ref('tts');
+    const text = ref('');
+    const selectedPreset = ref('');
+    const cloneFile = ref(null);
+    const denoise = ref(true);
+    const cfgValue = ref(2.0);
+    const timesteps = ref(10);
+    const normalize = ref(false);
+    const showAdv = ref(false);
+    const generating = ref(false);
+    const audioUrl = ref('');
+    const history = ref([]);
+    const historyLoaded = ref(false);
+    const presets = ref([
+      { id: 'zh_female_warm', name: '中文女声 - 温柔', lang: 'zh' },
+      { id: 'zh_male_calm', name: '中文男声 - 沉稳', lang: 'zh' },
+      { id: 'en_female_natural', name: 'English Female', lang: 'en' },
+      { id: 'en_male_deep', name: 'English Male', lang: 'en' },
+      { id: 'ja_female_soft', name: '日本語女性', lang: 'ja' },
+      { id: 'ko_female_clear', name: '한국어 여성', lang: 'ko' },
+    ]);
+
+    const toast = (msg) => {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2200);
+    };
+
+    const doGenerate = async () => {
+      if (!text.value.trim()) return toast('请输入文本');
+      generating.value = true;
+      try {
+        let res;
+        if (mode.value === 'tts') {
+          let control = '';
+          if (selectedPreset.value) {
+            const p = presets.value.find(x => x.id === selectedPreset.value);
+            if (p) control = p.name;
+          }
+          const fd = new FormData();
+          fd.append('text', text.value.trim());
+          fd.append('control', control);
+          fd.append('cfg_value', cfgValue.value);
+          fd.append('timesteps', timesteps.value);
+          fd.append('normalize', normalize.value);
+          res = await fetch('/api/tts/generate', { method: 'POST', body: fd });
+        } else {
+          if (!cloneFile.value) return toast('请上传参考音频');
+          const fd = new FormData();
+          fd.append('text', text.value.trim());
+          fd.append('audio', cloneFile.value);
+          fd.append('denoise', denoise.value);
+          fd.append('cfg_value', cfgValue.value);
+          fd.append('timesteps', timesteps.value);
+          fd.append('normalize', normalize.value);
+          res = await fetch('/api/tts/clone', { method: 'POST', body: fd });
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || data.error || '生成失败');
+        audioUrl.value = data.audio_url;
+        toast('✓ 生成完成');
+        loadHistory();
+      } catch (e) {
+        toast('❌ ' + e.message);
+      }
+      generating.value = false;
+    };
+
+    const onFileChange = (e) => {
+      const f = e.target.files?.[0];
+      if (f) cloneFile.value = f;
+    };
+
+    const onDrop = (e) => {
+      const f = e.dataTransfer?.files?.[0];
+      if (f) cloneFile.value = f;
+    };
+
+    const loadHistory = async () => {
+      try {
+        const res = await fetch('/api/tts/history?per_page=20');
+        const d = await res.json();
+        history.value = d.items || [];
+        historyLoaded.value = true;
+      } catch (e) { /* ignore */ }
+    };
+
+    const playHistory = (h) => {
+      audioUrl.value = `/api/tts/audio/${h.id}`;
+    };
+
+    const delHistory = async (id) => {
+      try {
+        await fetch('/api/tts/history/' + id, { method: 'DELETE' });
+        history.value = history.value.filter(x => x.id !== id);
+        if (audioUrl.value === `/api/tts/audio/${id}`) audioUrl.value = '';
+        toast('已删除');
+      } catch (e) {
+        toast('删除失败');
+      }
+    };
+
+    onMounted(() => { loadHistory(); });
+
+    return { mode, text, selectedPreset, cloneFile, denoise, cfgValue, timesteps, normalize, showAdv, generating, audioUrl, history, historyLoaded, presets, doGenerate, onFileChange, onDrop, loadHistory, playHistory, delHistory };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

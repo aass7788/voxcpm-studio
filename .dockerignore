@@ -1,0 +1,17 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.env
+*.md
+!README.md
+data
+output
+uploads
+node_modules
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+.dockerignore
+.github
+VoxCPM/.git

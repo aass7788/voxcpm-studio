@@ -1,0 +1,25 @@
+services:
+  app:
+    image: ghcr.io/aass7788/voxcpm-studio:latest
+    container_name: voxcpm-studio
+    ports:
+      - "8080:5000"
+    volumes:
+      - voxcpm_data:/app/data
+      - voxcpm_output:/app/output
+      - ./uploads:/app/uploads
+    environment:
+      - VOXCPM_MODEL_ID=${VOXCPM_MODEL_ID:-openbmb/VoxCPM2}
+      - VOXCPM_DEVICE=${VOXCPM_DEVICE:-cuda}
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  voxcpm_data:
+  voxcpm_output:
