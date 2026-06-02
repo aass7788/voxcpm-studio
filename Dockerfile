@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4-runtime-ubuntu22.04
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
 ENV PYTHONUNBUFFERED=1 DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
