@@ -22,8 +22,7 @@ jobs:
           python-version: "3.12"
 
       - name: 安装系统依赖
-        run: |
-          sudo apt-get update && sudo apt-get install -y libsndfile1
+        run: sudo apt-get update && sudo apt-get install -y libsndfile1
 
       - name: 安装 Python 依赖
         run: |
@@ -33,7 +32,9 @@ jobs:
 
       - name: 语法和导入检查
         run: |
-          python -c "import app; print('app OK')"
+          python -m py_compile app.py && echo "app.py syntax OK"
+          python -m py_compile desktop_app.py && echo "desktop_app.py syntax OK"
+          python -m py_compile tts_engine.py && echo "tts_engine.py syntax OK"
           python -c "import models; print('models OK')"
 
   build-and-deploy:

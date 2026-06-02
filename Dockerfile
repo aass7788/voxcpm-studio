@@ -28,7 +28,7 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # Copy app code
-COPY app.py tts_engine.py models.py ./
+COPY *.py ./
 COPY static/ ./static/
 COPY entrypoint.sh ./
 
