@@ -19,6 +19,7 @@ a = Analysis(
     datas=[
         ('static', 'static'),
         ('VoxCPM/assets', 'assets'),
+        ('VoxCPM/src/voxcpm', 'voxcpm'),  # .py 源文件供 TorchScript 编译
     ],
     hiddenimports=[
         'voxcpm', 'voxcpm.core', 'voxcpm.model', 'voxcpm.model.utils',
@@ -48,7 +49,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'unittest', 'test', 'tests'],
+    excludes=['tkinter', 'test', 'tests'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,

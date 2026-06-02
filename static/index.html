@@ -157,7 +157,7 @@ textarea:focus { border-color: var(--accent); }
     <div class="card-label">生成结果</div>
     <div class="audio-card">
       <audio controls :src="audioUrl" ref="player"></audio>
-      <a :href="audioUrl" download class="btn-dl">⬇ 下载</a>
+      <button @click="doDownload" class="btn-dl">⬇ 下载</button>
     </div>
   </div>
 
@@ -290,9 +290,22 @@ createApp({
       }
     };
 
+    const doDownload = () => {
+      const url = location.origin + audioUrl.value;
+      const filename = 'voxcpm_' + Date.now() + '.wav';
+      if (window.pywebview) {
+        window.pywebview.api.save_file(url, filename);
+      } else {
+        const a = document.createElement('a');
+        a.href = audioUrl.value + '?dl=1';
+        a.download = filename;
+        a.click();
+      }
+    };
+
     onMounted(() => { loadHistory(); });
 
-    return { mode, text, selectedPreset, cloneFile, denoise, cfgValue, timesteps, normalize, showAdv, generating, audioUrl, history, historyLoaded, presets, doGenerate, onFileChange, onDrop, loadHistory, playHistory, delHistory };
+    return { mode, text, selectedPreset, cloneFile, denoise, cfgValue, timesteps, normalize, showAdv, generating, audioUrl, history, historyLoaded, presets, doGenerate, onFileChange, onDrop, loadHistory, playHistory, delHistory, doDownload };
   }
 }).mount('#app');
 </script>

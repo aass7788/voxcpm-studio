@@ -28,13 +28,25 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI(title="VoxCPM Studio", version="1.0.0")
 
-engine = get_engine(model_id=MODEL_ID, device=DEVICE)
+_engine = None
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        logger.info("Loading VoxCPM engine...")
+        _engine = get_engine(model_id=MODEL_ID, device=DEVICE)
+        logger.info("VoxCPM engine ready")
+    return _engine
 
 
 @app.on_event("startup")
 def startup():
     init_db()
     logger.info(f"VoxCPM Studio starting, model={MODEL_ID}, device={DEVICE}")
+
+    # 后台预热引擎，不阻塞服务启动
+    threading.Thread(target=_get_engine, daemon=True).start()
 
     def _schedule():
         schedule.every().day.at("03:00").do(cleanup_old_records, hours=24)
@@ -73,7 +85,7 @@ async def api_generate(
     if not (1 <= timesteps <= 50):
         raise HTTPException(400, "步数范围 1-50")
 
-    result = await engine.generate(
+    result = await _get_engine().generate(
         text=text, control=control,
         cfg_value=cfg_value, timesteps=timesteps, normalize=normalize,
     )
@@ -106,7 +118,7 @@ async def api_clone(
     with open(ref_path, "wb") as f:
         f.write(content)
 
-    result = await engine.clone(
+    result = await _get_engine().clone(
         text=text, reference_audio=ref_path, prompt_text=prompt_text,
         denoise=denoise, cfg_value=cfg_value, timesteps=timesteps, normalize=normalize,
     )
@@ -148,13 +160,17 @@ def api_delete_history(rid: str):
 
 
 @app.get("/api/tts/audio/{rid}")
-def api_audio(rid: str):
+def api_audio(rid: str, dl: str = ""):
     rec = get_record(rid)
     if not rec:
         raise HTTPException(404, "记录不存在")
     path = rec["output_audio"]
     if not os.path.exists(path):
         raise HTTPException(404, "音频文件已过期")
+    filename = f"voxcpm_{rid}.wav"
+    if dl:
+        return FileResponse(path, media_type="audio/wav", filename=filename,
+                            headers={"Content-Disposition": f'attachment; filename="{filename}"'})
     return FileResponse(path, media_type="audio/wav")
 
 

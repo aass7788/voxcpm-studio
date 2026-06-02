@@ -1,15 +1,30 @@
 """VoxCPM Studio — 桌面应用入口"""
 import os
 import sys
+
+# PyInstaller bundle DLL paths
+if getattr(sys, 'frozen', False):
+    _base = os.path.dirname(sys.executable)
+    _internal = os.path.join(_base, '_internal')
+    if os.path.isdir(_internal):
+        os.add_dll_directory(_internal)
+        os.add_dll_directory(os.path.join(_internal, 'torch', 'lib'))
+        # Also add system CUDA path if present
+        cuda_path = os.environ.get('CUDA_PATH') or 'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4'
+        if os.path.isdir(os.path.join(cuda_path, 'bin')):
+            os.add_dll_directory(os.path.join(cuda_path, 'bin'))
+    sys.path.insert(0, _internal)
+
 import threading
 import time
 import socket
 
 import webview
 import uvicorn
+import requests
 
 from models import init_db
-from tts_engine import get_engine
+from app import app as fastapi_app
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 HOST = "127.0.0.1"
@@ -26,7 +41,7 @@ def find_free_port():
 
 def run_server(port):
     sys.argv = [sys.argv[0]]
-    uvicorn.run("app:app", host=HOST, port=port, log_level="warning")
+    uvicorn.run(fastapi_app, host=HOST, port=port, log_level="warning")
 
 
 def main():
@@ -40,29 +55,42 @@ def main():
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()
 
-    # 预热模型（后台加载，不阻塞窗口）
-    print("Loading VoxCPM model in background...")
-    threading.Thread(target=lambda: get_engine(), daemon=True).start()
-
-    # 等待服务器就绪
-    for _ in range(30):
+    # 等待服务器就绪（引擎已懒加载，app 导入很快，最多等 30 秒）
+    for _ in range(100):
         try:
             s = socket.create_connection((HOST, port), timeout=0.5)
             s.close()
             break
         except Exception:
             time.sleep(0.3)
+    else:
+        print("WARNING: Server did not start, but continuing anyway...")
+    print(f"VoxCPM Studio 启动: http://{HOST}:{port}")
+
+    class Api:
+        def save_file(self, url, filename):
+            result = webview.windows[0].create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=filename,
+                file_types=("WAV 音频 (*.wav)",),
+            )
+            path = result[0] if isinstance(result, tuple) else result
+            if path:
+                r = requests.get(url)
+                with open(path, "wb") as f:
+                    f.write(r.content)
+                print(f"Saved: {path}")
 
     url = f"http://{HOST}:{port}"
-    print(f"VoxCPM Studio 启动: {url}")
 
-    webview.create_window(
+    window = webview.create_window(
         "VoxCPM Studio — AI 配音工坊",
         url,
         width=420,
         height=820,
         min_size=(380, 600),
         text_select=True,
+        js_api=Api(),
     )
     webview.start()
 

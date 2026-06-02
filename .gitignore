@@ -5,3 +5,6 @@ data/
 output/
 uploads/
 *.wav
+build/
+dist/
+*.spec.bak
