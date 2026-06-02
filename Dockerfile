@@ -3,7 +3,9 @@ FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 ENV PYTHONUNBUFFERED=1 DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y --no-install-recommends \
     python3.12 python3.12-venv python3.12-dev python3-pip \
     libsndfile1 ffmpeg curl tini && \
     rm -rf /var/lib/apt/lists/* && \
