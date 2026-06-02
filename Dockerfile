@@ -18,10 +18,11 @@ WORKDIR /app
 RUN python3 -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # 2. VoxCPM (仅装包本身，依赖后面统一装)
-# setuptools_scm 需要版本号，Docker 里没有 .git 目录
+# setuptools_scm 需要 git，Docker 里没有，先装构建工具再用环境变量绕过
+RUN python3 -m pip install setuptools setuptools_scm wheel
 COPY VoxCPM/ ./VoxCPM/
 RUN SETUPTOOLS_SCM_PRETEND_VERSION_FOR_VOXCPM=0.1.0 \
-    python3 -m pip install --no-deps -e ./VoxCPM/
+    python3 -m pip install --no-deps --no-build-isolation -e ./VoxCPM/
 
 # 3. 合并安装所有依赖
 COPY requirements.txt .
