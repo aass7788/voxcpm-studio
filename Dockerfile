@@ -14,18 +14,18 @@ RUN groupadd -g 1000 appuser && \
 
 WORKDIR /app
 
-# Install PyTorch for CUDA
+# 1. PyTorch (CUDA)
 RUN python3 -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 
-# Install voxcpm from local source
+# 2. VoxCPM (仅装包本身，依赖后面统一装)
 COPY VoxCPM/ ./VoxCPM/
-RUN python3 -m pip install -e ./VoxCPM/
+RUN python3 -m pip install --no-deps -e ./VoxCPM/
 
-# Install app dependencies
+# 3. 合并安装所有依赖
 COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
 
-# Copy app code
+# 4. 应用代码
 COPY *.py ./
 COPY static/ ./static/
 COPY entrypoint.sh ./
