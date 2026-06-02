@@ -3,32 +3,35 @@ FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 ENV PYTHONUNBUFFERED=1 DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
 
+# 系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-venv python3-dev python3-pip \
     libsndfile1 ffmpeg curl tini && \
     rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip
 
+# 非 root 用户
 RUN groupadd -g 1000 appuser && \
     useradd -u 1000 -g appuser -d /app appuser
 
 WORKDIR /app
 
-# 1. PyTorch (CUDA)
+# 构建工具
+RUN python3 -m pip install setuptools setuptools_scm wheel
+
+# PyTorch (CUDA)
 RUN python3 -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 
-# 2. VoxCPM (仅装包本身，依赖后面统一装)
-# setuptools_scm 需要 git，Docker 里没有，先装构建工具再用环境变量绕过
-RUN python3 -m pip install setuptools setuptools_scm wheel
+# VoxCPM — 用 sed 替换动态版本为静态，避开 setuptools_scm 需要 git 的问题
 COPY VoxCPM/ ./VoxCPM/
-RUN SETUPTOOLS_SCM_PRETEND_VERSION_FOR_VOXCPM=0.1.0 \
-    python3 -m pip install --no-deps --no-build-isolation -e ./VoxCPM/
+RUN sed -i 's/dynamic = \["version"\]/version = "0.1.0"/' ./VoxCPM/pyproject.toml && \
+    python3 -m pip install --no-deps -e ./VoxCPM/
 
-# 3. 合并安装所有依赖
+# 应用依赖
 COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
 
-# 4. 应用代码
+# 应用代码
 COPY *.py ./
 COPY static/ ./static/
 COPY entrypoint.sh ./
